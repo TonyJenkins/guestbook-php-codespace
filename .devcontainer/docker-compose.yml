@@ -1,0 +1,51 @@
+services:
+  app:
+    image: php:8.2-apache
+    container_name: guestbook-php-app
+    volumes:
+      - ..:/workspace:cached
+      - /workspace/.devcontainer
+    working_dir: /workspace
+    ports:
+      - "8080:80"
+    environment:
+      - APACHE_DOCUMENT_ROOT=/workspace
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      bash -c "
+      docker-php-ext-install pdo pdo_mysql &&
+      a2enmod rewrite &&
+      echo 'ServerName localhost' >> /etc/apache2/apache2.conf &&
+      sed -i 's|/var/www/html|/workspace|g' /etc/apache2/sites-available/000-default.conf &&
+      echo '<Directory /workspace/>' >> /etc/apache2/apache2.conf &&
+      echo '    Options Indexes FollowSymLinks' >> /etc/apache2/apache2.conf &&
+      echo '    AllowOverride All' >> /etc/apache2/apache2.conf &&
+      echo '    Require all granted' >> /etc/apache2/apache2.conf &&
+      echo '</Directory>' >> /etc/apache2/apache2.conf &&
+      apache2-foreground
+      "
+
+  db:
+    image: mariadb:10.11
+    container_name: guestbook-mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: guestbook
+      MYSQL_USER: guestbook_user
+      MYSQL_PASSWORD: guestbook_password
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      - ../guestbook.sql:/docker-entrypoint-initdb.d/guestbook.sql:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mariadb-data:
