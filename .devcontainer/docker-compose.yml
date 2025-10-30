@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     image: php:8.2-apache
@@ -21,6 +19,11 @@ services:
       a2enmod rewrite &&
       echo 'ServerName localhost' >> /etc/apache2/apache2.conf &&
       sed -i 's|/var/www/html|/workspace|g' /etc/apache2/sites-available/000-default.conf &&
+      echo '<Directory /workspace/>' >> /etc/apache2/apache2.conf &&
+      echo '    Options Indexes FollowSymLinks' >> /etc/apache2/apache2.conf &&
+      echo '    AllowOverride All' >> /etc/apache2/apache2.conf &&
+      echo '    Require all granted' >> /etc/apache2/apache2.conf &&
+      echo '</Directory>' >> /etc/apache2/apache2.conf &&
       apache2-foreground
       "
 
